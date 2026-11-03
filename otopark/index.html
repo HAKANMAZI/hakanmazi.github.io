@@ -38,6 +38,9 @@
   .left { color: var(--muted); font-size: .85rem; }
   .note { width: 100%; margin-top: 8px; padding: 10px; font-size: 1rem; border-radius: 10px;
           border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+  .exp-row { width: 100%; display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: .95rem; }
+  .exp-row input { flex: 1; padding: 9px; font-size: 1rem; border-radius: 10px;
+                   border: 1px solid var(--border); background: var(--bg); color: var(--text); }
   .del { border: 1px solid var(--danger); color: var(--danger); background: transparent;
          border-radius: 10px; padding: 8px 12px; font-size: .95rem; cursor: pointer; }
   .latest { display: inline-block; background: var(--primary); color: #fff; font-size: .75rem;
@@ -59,7 +62,7 @@
 
 <button class="capture" id="captureBtn">📷 Fotoğraf Çek</button>
 <input type="file" id="fileInput" accept="image/*" capture="environment" hidden>
-<p class="hint">Fotoğraflar 7 gün sonra otomatik silinir.</p>
+<p class="hint">Fotoğraflar varsayılan olarak 7 gün sonra otomatik silinir.<br>Silinme tarihini her fotoğrafın altından değiştirebilirsin.</p>
 
 <div class="list" id="list"></div>
 
@@ -79,12 +82,19 @@ function openDB() {
   });
 }
 function tx(mode) { return db.transaction('photos', mode).objectStore('photos'); }
+// Silinme zamanı: elle seçildiyse o, yoksa çekim + 7 gün
+function expiresAt(p) { return p.expires || p.time + KEEP; }
+// Zaman damgası -> "YYYY-MM-DD" (tarih kutusu için, yerel saat)
+function toDateStr(t) {
+  const d = new Date(t);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 function req(r) { return new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
 
 async function cleanup() {
   const all = await req(tx('readonly').getAll());
   const now = Date.now();
-  for (const p of all) if (now - p.time > KEEP) await req(tx('readwrite').delete(p.id));
+  for (const p of all) if (now >= expiresAt(p)) await req(tx('readwrite').delete(p.id));
 }
 
 // Fotoğrafı küçült (depolama tasarrufu)
@@ -108,8 +118,8 @@ function resize(file, max = 1600) {
 function fmtDate(t) {
   return new Date(t).toLocaleString('tr-TR', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' });
 }
-function fmtLeft(t) {
-  const ms = t + KEEP - Date.now();
+function fmtLeft(p) {
+  const ms = expiresAt(p) - Date.now();
   const d = Math.floor(ms / DAY), h = Math.floor((ms % DAY) / 3600000);
   return d > 0 ? `${d} gün ${h} saat sonra silinecek` : `${Math.max(h, 0)} saat sonra silinecek`;
 }
@@ -133,14 +143,25 @@ async function render() {
       <div class="meta">
         <div class="info">
           <div class="date">${fmtDate(p.time)}${i === 0 ? '<span class="latest">Son</span>' : ''}</div>
-          <div class="left">${fmtLeft(p.time)}</div>
+          <div class="left">${fmtLeft(p)}</div>
         </div>
         <button class="del">Sil</button>
         <input class="note" placeholder="Not ekle (ör. B2 kat, 45 no)">
+        <label class="exp-row">🗓️ Silinme tarihi <input type="date" class="exp"></label>
       </div>`;
     const note = card.querySelector('.note');
     note.value = p.note || '';
     note.addEventListener('change', async () => { p.note = note.value; await req(tx('readwrite').put(p)); });
+    const exp = card.querySelector('.exp');
+    exp.value = toDateStr(expiresAt(p));
+    exp.min = toDateStr(Date.now());
+    exp.addEventListener('change', async () => {
+      if (!exp.value) { exp.value = toDateStr(expiresAt(p)); return; }
+      const [y, m, d] = exp.value.split('-').map(Number);
+      p.expires = new Date(y, m - 1, d, 23, 59).getTime(); // seçilen günün sonunda silinir
+      await req(tx('readwrite').put(p));
+      render();
+    });
     card.querySelector('img').addEventListener('click', () => openViewer(u));
     card.querySelector('.del').addEventListener('click', async () => {
       if (confirm('Bu fotoğraf silinsin mi?')) { await req(tx('readwrite').delete(p.id)); render(); }
