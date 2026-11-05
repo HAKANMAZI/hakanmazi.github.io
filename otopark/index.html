@@ -24,13 +24,17 @@
   header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
   header h1 { font-size: 1.3rem; margin: 0; }
   .logo { width: 36px; height: 36px; border-radius: 9px; }
-  .capture { display: block; width: 100%; padding: 22px; font-size: 1.25rem; font-weight: 700;
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .capture { display: block; width: 100%; padding: 22px 8px; font-size: 1.25rem; font-weight: 700;
              border: 0; border-radius: 16px; background: var(--primary); color: #fff;
              cursor: pointer; box-shadow: 0 4px 14px rgba(21,101,192,.35); }
+  .capture.video { background: #2e7d32; box-shadow: 0 4px 14px rgba(46,125,50,.35); }
   .capture:active { transform: scale(.98); }
   .hint { color: var(--muted); font-size: .9rem; text-align: center; margin: 10px 0 20px; }
   .list { display: grid; gap: 14px; }
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .card video { display: block; width: 100%; max-height: 60vh; background: #000; }
+  .busy { text-align: center; color: var(--muted); padding: 10px; display: none; }
   .card img { display: block; width: 100%; max-height: 60vh; object-fit: contain; background: #000; cursor: zoom-in; }
   .meta { padding: 10px 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .meta .info { flex: 1; min-width: 150px; }
@@ -60,9 +64,14 @@
   <h1>Otopark Hatırlatıcı</h1>
 </header>
 
-<button class="capture" id="captureBtn">📷 Fotoğraf Çek</button>
+<div class="actions">
+  <button class="capture" id="captureBtn">📷 Fotoğraf</button>
+  <button class="capture video" id="videoBtn">🎥 Video</button>
+</div>
 <input type="file" id="fileInput" accept="image/*" capture="environment" hidden>
-<p class="hint">Fotoğraflar varsayılan olarak 7 gün sonra otomatik silinir.<br>Silinme tarihini her fotoğrafın altından değiştirebilirsin.</p>
+<input type="file" id="videoInput" accept="video/*" capture="environment" hidden>
+<p class="hint">Fotoğraf ve videolar varsayılan olarak 7 gün sonra otomatik silinir.<br>Silinme tarihini her kaydın altından değiştirebilirsin.</p>
+<div class="busy" id="busy">Kaydediliyor…</div>
 
 <div class="list" id="list"></div>
 
@@ -131,7 +140,7 @@ async function render() {
   const list = document.getElementById('list');
   list.innerHTML = '';
   if (!all.length) {
-    list.innerHTML = '<div class="empty">Henüz fotoğraf yok.<br>Aracını park edince park yeri numarasının fotoğrafını çek.</div>';
+    list.innerHTML = '<div class="empty">Henüz kayıt yok.<br>Aracını park edince park yeri numarasının fotoğrafını veya videosunu çek.</div>';
     return;
   }
   all.forEach((p, i) => {
@@ -139,7 +148,9 @@ async function render() {
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `
-      <img src="${u}" alt="Park fotoğrafı">
+      ${p.kind === 'video'
+        ? `<video src="${u}" controls playsinline preload="metadata"></video>`
+        : `<img src="${u}" alt="Park fotoğrafı">`}
       <div class="meta">
         <div class="info">
           <div class="date">${fmtDate(p.time)}${i === 0 ? '<span class="latest">Son</span>' : ''}</div>
@@ -162,9 +173,10 @@ async function render() {
       await req(tx('readwrite').put(p));
       render();
     });
-    card.querySelector('img').addEventListener('click', () => openViewer(u));
+    const img = card.querySelector('img');
+    if (img) img.addEventListener('click', () => openViewer(u));
     card.querySelector('.del').addEventListener('click', async () => {
-      if (confirm('Bu fotoğraf silinsin mi?')) { await req(tx('readwrite').delete(p.id)); render(); }
+      if (confirm(p.kind === 'video' ? 'Bu video silinsin mi?' : 'Bu fotoğraf silinsin mi?')) { await req(tx('readwrite').delete(p.id)); render(); }
     });
     list.appendChild(card);
   });
@@ -176,16 +188,30 @@ function openViewer(u) {
 }
 document.getElementById('viewer').addEventListener('click', e => e.currentTarget.classList.remove('open'));
 
-const input = document.getElementById('fileInput');
-document.getElementById('captureBtn').addEventListener('click', () => input.click());
-input.addEventListener('change', async () => {
-  const f = input.files[0];
-  input.value = '';
-  if (!f) return;
-  const blob = await resize(f);
-  await req(tx('readwrite').add({ blob, time: Date.now(), note: '' }));
+async function save(file, kind) {
+  const busy = document.getElementById('busy');
+  busy.style.display = 'block';
+  try {
+    // Fotoğraf küçültülür, video olduğu gibi saklanır
+    const blob = kind === 'video' ? file : await resize(file);
+    await req(tx('readwrite').add({ blob, kind, time: Date.now(), note: '' }));
+  } catch (e) {
+    alert('Kaydedilemedi. Telefonda yer kalmamış olabilir; eski kayıtları silip tekrar dene.');
+  }
+  busy.style.display = 'none';
   render();
-});
+}
+function setup(btnId, inputId, kind) {
+  const input = document.getElementById(inputId);
+  document.getElementById(btnId).addEventListener('click', () => input.click());
+  input.addEventListener('change', () => {
+    const f = input.files[0];
+    input.value = '';
+    if (f) save(f, kind);
+  });
+}
+setup('captureBtn', 'fileInput', 'photo');
+setup('videoBtn', 'videoInput', 'video');
 
 (async () => {
   db = await openDB();
