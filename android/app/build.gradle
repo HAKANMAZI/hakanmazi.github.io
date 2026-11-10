@@ -1,0 +1,50 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'io.github.hakanmazi.otopark'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'io.github.hakanmazi.otopark'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    // İmza anahtarı depoda DEĞİL: android/keystore.properties dosyasından okunur (git'e eklenmez).
+    // Güncellemeler aynı anahtarla imzalanmalı, yoksa telefon güncellemeyi kabul etmez.
+    def ksFile = rootProject.file('keystore.properties')
+    def ks = new Properties()
+    if (ksFile.exists()) ksFile.withInputStream { ks.load(it) }
+    signingConfigs {
+        release {
+            if (ks['storeFile']) {
+                storeFile file(ks['storeFile'])
+                storePassword ks['storePassword']
+                keyAlias ks['keyAlias']
+                keyPassword ks['keyPassword']
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig ks['storeFile'] ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    // Web uygulamasının dosyaları (../../otopark) APK'nın içine gömülür
+    sourceSets {
+        main { assets.srcDirs = ['../../otopark'] }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core:1.13.1'
+    implementation 'androidx.webkit:webkit:1.11.0'
+}
