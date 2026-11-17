@@ -42,14 +42,14 @@
 </head>
 <body>
 <h1>🎬 Kamera Stüdyo</h1>
-<p class="sub">Yapay zekâ ile sinematik video & görsel. Abonelik yok — kendi fal.ai anahtarınla üret, kullandığın kadar öde.</p>
+<p class="sub">Yapay zekâ ile sinematik video & görsel. Tamamen ücretsiz — abonelik yok, kart yok, anahtar yok.</p>
 
 <div class="card">
   <details id="keyBox">
-    <summary>🔑 API anahtarı (fal.ai)</summary>
-    <label for="key">fal.ai API key</label>
-    <input id="key" type="password" placeholder="xxxxxxxx-xxxx:xxxxxxxx">
-    <small>Anahtar yalnızca bu cihazda saklanır. Almak için: fal.ai → Dashboard → Keys.</small>
+    <summary>⚡ Daha fazla ücretsiz video (isteğe bağlı)</summary>
+    <small>Video, Hugging Face'in ücretsiz GPU'larında üretilir; günlük bir sınır vardır. Ücretsiz bir huggingface.co hesabı açıp Settings → Access Tokens'tan aldığın token'ı buraya yapıştırırsan sınır artar.</small>
+    <label for="key">Hugging Face token</label>
+    <input id="key" type="password" placeholder="hf_...">
   </details>
 </div>
 
@@ -75,11 +75,9 @@
   </div>
 
   <details style="margin-top:12px">
-    <summary>⚙️ Gelişmiş</summary>
-    <label for="model">Model</label>
-    <input id="model">
-    <label for="dur">Süre (sn)</label>
-    <select id="dur"><option>5</option><option>10</option></select>
+    <summary>⚙️ Süre</summary>
+        <label for="dur">Süre (sn)</label>
+    <select id="dur"><option>2</option><option selected>3</option><option>5</option></select>
   </details>
 
   <button class="go" id="go">Üret</button>
@@ -89,7 +87,11 @@
 <h2 style="font-size:1.1rem">Galeri</h2>
 <div class="gallery" id="gallery"></div>
 
-<script>
+<script type="module">
+// HF Spaces CORS ön kontrolü çerezli istekleri reddediyor: hf.space isteklerini çerezsiz gönder
+const _fetch = window.fetch.bind(window);
+window.fetch = (u, o = {}) => /\.hf\.space|huggingface\.co/.test(String(u?.url || u)) ? _fetch(u, { ...o, credentials: "omit" }) : _fetch(u, o);
+import { Client, handle_file } from "https://cdn.jsdelivr.net/npm/@gradio/client@1.15.1/+esm";
 const PRESETS = [
   ["Yok", ""],
   ["Yaklaş (Dolly In)", "the camera slowly dollies in toward the subject"],
@@ -106,11 +108,7 @@ const PRESETS = [
   ["Dolly Zoom", "vertigo dolly zoom effect, background warps"],
   ["Takip", "the camera follows behind the subject as they move"],
 ];
-const MODELS = {
-  i2v: "fal-ai/kling-video/v2.1/standard/image-to-video",
-  t2v: "fal-ai/kling-video/v2.1/master/text-to-video",
-  t2i: "fal-ai/flux/schnell",
-};
+const SPACE = "Lightricks/ltx-video-distilled";
 const $ = id => document.getElementById(id);
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
@@ -128,9 +126,8 @@ PRESETS.forEach(([name, txt], i) => {
 });
 
 // key
-$("key").value = store.get("falKey", "");
-if (!$("key").value) $("keyBox").open = true;
-$("key").oninput = () => store.set("falKey", $("key").value.trim());
+$("key").value = store.get("hfKey", "");
+$("key").oninput = () => store.set("hfKey", $("key").value.trim());
 
 // tabs
 function setMode(m) {
@@ -138,11 +135,8 @@ function setMode(m) {
   document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.mode === m));
   $("imgWrap").style.display = m === "i2v" ? "" : "none";
   $("camWrap").style.display = m === "t2i" ? "none" : "";
-  $("dur").parentElement && ($("dur").disabled = m === "t2i");
-  $("model").value = store.get("model_" + m, MODELS[m]);
 }
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => setMode(b.dataset.mode));
-$("model").oninput = () => store.set("model_" + mode, $("model").value.trim());
 setMode("i2v");
 
 // image -> data URI (resized to keep request small)
@@ -163,45 +157,51 @@ $("img").onchange = e => {
 const status = t => $("status").textContent = t;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-async function fal(model, input) {
-  const key = $("key").value.trim();
-  if (!key) throw new Error("Önce fal.ai API anahtarını gir.");
-  const H = { "Authorization": "Key " + key, "Content-Type": "application/json" };
-  const r = await fetch("https://queue.fal.run/" + model, { method: "POST", headers: H, body: JSON.stringify(input) });
-  if (!r.ok) throw new Error("İstek reddedildi (" + r.status + "): " + (await r.text()).slice(0, 300));
-  const q = await r.json();
+let client = null;
+async function video(input) {
+  const tok = $("key").value.trim();
+  if (!client) client = await Client.connect(SPACE, tok ? { hf_token: tok } : {});
+  const ep = input.image ? "/image_to_video" : "/text_to_video";
   const t0 = Date.now();
-  while (true) {
-    await sleep(3000);
-    const s = await (await fetch(q.status_url, { headers: H })).json();
-    status(`⏳ ${s.status === "IN_QUEUE" ? "Sırada" + (s.queue_position != null ? " (#" + s.queue_position + ")" : "") : "Üretiliyor"}… ${Math.round((Date.now() - t0) / 1000)} sn`);
-    if (s.status === "COMPLETED") break;
-    if (s.status === "FAILED" || s.error) throw new Error("Üretim başarısız: " + (s.error || ""));
-  }
-  const res = await fetch(q.response_url, { headers: H });
-  const out = await res.json();
-  if (!res.ok) throw new Error("Hata: " + JSON.stringify(out).slice(0, 300));
-  return out;
+  const tick = setInterval(() => status("⏳ Üretiliyor (ücretsiz GPU sırası)… " + Math.round((Date.now() - t0) / 1000) + " sn"), 1000);
+  try {
+    const r = await client.predict(ep, {
+      prompt: input.prompt, negative_prompt: "worst quality, inconsistent motion, blurry, jittery, distorted",
+      input_image_filepath: input.image ? handle_file(input.image) : null, input_video_filepath: null,
+      height_ui: 512, width_ui: 704, mode: input.image ? "image-to-video" : "text-to-video",
+      duration_ui: Number(input.dur), ui_frames_to_use: 9, seed_ui: 42, randomize_seed: true,
+      ui_guidance_scale: 1, improve_texture_flag: true,
+    });
+    return r.data[0].video.url;
+  } catch (e) {
+    client = null;
+    const m = (e && (e.message || e.title || JSON.stringify(e))) || "";
+    if (/quota|GPU/i.test(m)) throw new Error("Ücretsiz günlük GPU sınırı doldu. Biraz sonra tekrar dene ya da yukarıya ücretsiz Hugging Face token'ı ekle.");
+    throw new Error("Üretilemedi: " + m.slice(0, 200));
+  } finally { clearInterval(tick); }
+}
+
+function image(prompt) {
+  const url = "https://image.pollinations.ai/prompt/" + encodeURIComponent(prompt) +
+    "?width=1280&height=720&nologo=true&seed=" + Math.floor(Math.random() * 1e9);
+  return new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(url); i.onerror = () => no(new Error("Görsel üretilemedi, tekrar dene.")); i.src = url; status("⏳ Görsel üretiliyor…"); });
 }
 
 $("go").onclick = async () => {
   const prompt = $("prompt").value.trim();
   if (!prompt && mode !== "i2v") return status("Bir açıklama yaz.");
   if (mode === "i2v" && !imgData) return status("Bir görsel seç.");
-  const full = [prompt, mode !== "t2i" ? cam : ""].filter(Boolean).join(", ");
-  const model = $("model").value.trim();
-  const input = mode === "t2i"
-    ? { prompt: full, image_size: "landscape_16_9", num_images: 1 }
-    : { prompt: full || "cinematic motion", duration: $("dur").value, ...(mode === "i2v" ? { image_url: imgData } : { aspect_ratio: "16:9" }) };
-  $("go").disabled = true; status("🚀 Gönderiliyor…");
+  const full = [prompt, mode !== "t2i" ? cam : ""].filter(Boolean).join(", ") || "cinematic motion";
+  $("go").disabled = true; status("🚀 Başlıyor…");
   try {
-    const out = await fal(model, input);
-    const url = out.video?.url || out.images?.[0]?.url || out.image?.url;
-    if (!url) throw new Error("Sonuç bulunamadı: " + JSON.stringify(out).slice(0, 300));
+    const isVid = mode !== "t2i";
+    const url = isVid
+      ? await video({ prompt: full, dur: $("dur").value, image: mode === "i2v" ? await (await fetch(imgData)).blob() : null })
+      : await image(full);
     const g = store.get("gallery", []);
-    g.unshift({ url, type: out.video ? "video" : "image", prompt: full, t: Date.now() });
+    g.unshift({ url, type: isVid ? "video" : "image", prompt: full, t: Date.now() });
     store.set("gallery", g.slice(0, 50));
-    render(); status("✅ Hazır!");
+    render(); status(isVid ? "✅ Hazır! Videolar sunucuda geçicidir — beğendiğini indir." : "✅ Hazır!");
   } catch (e) { status("❌ " + e.message); }
   $("go").disabled = false;
 };
