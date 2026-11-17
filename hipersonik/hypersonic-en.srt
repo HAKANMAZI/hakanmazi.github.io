@@ -1,0 +1,107 @@
+1
+00:00:00,700 --> 00:00:01,977
+Hypersonic missiles.
+
+2
+00:00:02,327 --> 00:00:07,226
+How does a missile that flies more than five times the speed of sound actually work? Let's take a look.
+
+3
+00:00:09,276 --> 00:00:14,303
+Mach one is the speed of sound: about twelve hundred thirty five kilometers per hour at sea level.
+
+4
+00:00:14,653 --> 00:00:19,541
+An airliner cruises at Mach zero point eight five, and Concorde flew at Mach two.
+
+5
+00:00:19,891 --> 00:00:25,278
+Hypersonic missiles go beyond Mach five, that is, more than six thousand kilometers per hour.
+
+6
+00:00:25,628 --> 00:00:29,866
+At that speed, London to Paris would take only about three and a half minutes.
+
+7
+00:00:31,916 --> 00:00:34,435
+The first type is the hypersonic glide vehicle.
+
+8
+00:00:34,785 --> 00:00:38,628
+First, a rocket booster carries the vehicle very high and very fast.
+
+9
+00:00:38,978 --> 00:00:41,300
+Then the glide vehicle separates from the rocket.
+
+10
+00:00:41,650 --> 00:00:46,619
+It glides through the upper atmosphere at Mach five to twenty, skipping and maneuvering as it goes.
+
+11
+00:00:46,969 --> 00:00:50,046
+Unlike a ballistic missile, its path is hard to predict.
+
+12
+00:00:52,096 --> 00:00:54,870
+The second type is the scramjet powered cruise missile.
+
+13
+00:00:55,220 --> 00:00:59,365
+The inlet compresses incoming air using shock waves. There are no moving parts.
+
+14
+00:00:59,715 --> 00:01:04,673
+In the combustor, fuel is burned inside air that is still flowing at supersonic speed.
+
+15
+00:01:05,023 --> 00:01:08,691
+The expanding hot gas exits through the nozzle and produces thrust.
+
+16
+00:01:09,041 --> 00:01:14,428
+Because a scramjet only works above about Mach four, the missile is first accelerated by a rocket.
+
+17
+00:01:16,478 --> 00:01:19,067
+The biggest enemy of a hypersonic missile is heat.
+
+18
+00:01:19,417 --> 00:01:24,189
+Air compression and friction heat the surface to more than two thousand degrees Celsius.
+
+19
+00:01:24,539 --> 00:01:29,125
+A layer of plasma forms around the missile, which disrupts radio communication.
+
+20
+00:01:29,475 --> 00:01:33,736
+That's why engineers use carbon carbon composites and ceramic heat shields.
+
+21
+00:01:35,786 --> 00:01:37,632
+So why are they so hard to stop?
+
+22
+00:01:37,982 --> 00:01:41,488
+A ballistic missile climbs high, so radar can see it early.
+
+23
+00:01:41,838 --> 00:01:45,739
+A hypersonic missile flies low, staying below the radar horizon.
+
+24
+00:01:46,089 --> 00:01:48,759
+It keeps maneuvering, so its path can't be predicted.
+
+25
+00:01:49,109 --> 00:01:52,488
+Only a few minutes remain between detection and impact.
+
+26
+00:01:54,538 --> 00:02:00,958
+In short, hypersonic missiles combine extreme speed with maneuverability, making them very hard to defend against.
+
+27
+00:02:01,308 --> 00:02:02,179
+Thanks for watching.

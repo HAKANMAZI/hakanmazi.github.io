@@ -1,0 +1,107 @@
+1
+00:00:00,700 --> 00:00:02,255
+Hipersonik füzeler.
+
+2
+00:00:02,605 --> 00:00:07,679
+Ses hızının beş katından hızlı giden bir füze nasıl çalışır? Birlikte bakalım.
+
+3
+00:00:09,729 --> 00:00:15,940
+Mach bir, ses hızıdır. Deniz seviyesinde saatte yaklaşık bin iki yüz otuz beş kilometre.
+
+4
+00:00:16,290 --> 00:00:21,480
+Bir yolcu uçağı Mach sıfır virgül sekiz beş ile, Concorde ise Mach iki ile uçar.
+
+5
+00:00:21,830 --> 00:00:27,240
+Hipersonik füzeler ise Mach beşin, yani saatte altı bin kilometrenin üzerine çıkar.
+
+6
+00:00:27,590 --> 00:00:31,990
+Bu hızla İstanbul ile Ankara arası yalnızca üç buçuk dakika sürer.
+
+7
+00:00:34,040 --> 00:00:36,908
+Birinci tür, hipersonik süzülme aracıdır.
+
+8
+00:00:37,258 --> 00:00:40,799
+Önce bir roket, aracı çok yükseğe ve çok hızlı çıkarır.
+
+9
+00:00:41,149 --> 00:00:44,051
+Ardından süzülme aracı roketten ayrılır.
+
+10
+00:00:44,401 --> 00:00:50,032
+Atmosferin üst katmanında, Mach beş ile yirmi arasında bir hızla süzülür ve manevra yapar.
+
+11
+00:00:50,382 --> 00:00:54,179
+Balistik füzelerin aksine, yörüngesi tahmin edilemez.
+
+12
+00:00:56,229 --> 00:00:59,421
+İkinci tür, scramjet motorlu seyir füzeleridir.
+
+13
+00:00:59,771 --> 00:01:05,321
+Giriş bölümü, havayı şok dalgalarıyla sıkıştırır. Motorda hareketli parça yoktur.
+
+14
+00:01:05,671 --> 00:01:10,118
+Yanma odasında yakıt, süpersonik hızla akan havanın içinde yakılır.
+
+15
+00:01:10,468 --> 00:01:14,357
+Genleşen sıcak gazlar lüleden çıkarak itki üretir.
+
+16
+00:01:14,707 --> 00:01:20,233
+Bu motor ancak Mach dört civarında çalıştığı için, füze önce bir roketle hızlandırılır.
+
+17
+00:01:22,283 --> 00:01:25,476
+Hipersonik füzelerin en büyük düşmanı ısıdır.
+
+18
+00:01:25,826 --> 00:01:30,540
+Havanın sıkışması ve sürtünme, yüzeyi iki bin derecenin üzerine ısıtır.
+
+19
+00:01:30,890 --> 00:01:35,789
+Füzenin çevresinde plazma oluşur ve bu, radyo iletişimini zorlaştırır.
+
+20
+00:01:36,139 --> 00:01:40,806
+Bu yüzden karbon karbon kompozitler ve seramik ısı kalkanları kullanılır.
+
+21
+00:01:42,856 --> 00:01:45,109
+Peki neden durdurmak bu kadar zor?
+
+22
+00:01:45,459 --> 00:01:49,592
+Balistik bir füze yükseğe çıktığı için radar onu erkenden görür.
+
+23
+00:01:49,942 --> 00:01:54,354
+Hipersonik füze ise alçaktan uçar ve radar ufkunun altında kalır.
+
+24
+00:01:54,704 --> 00:01:58,454
+Sürekli manevra yaptığı için yörüngesi tahmin edilemez.
+
+25
+00:01:58,804 --> 00:02:03,192
+Tespit ile çarpma arasında yalnızca birkaç dakika kalır.
+
+26
+00:02:05,242 --> 00:02:11,964
+Özetle, hipersonik füzeler yüksek hızı ve manevra yeteneğini birleştirerek savunmayı çok zorlaştırır.
+
+27
+00:02:12,314 --> 00:02:14,451
+İzlediğiniz için teşekkürler.
