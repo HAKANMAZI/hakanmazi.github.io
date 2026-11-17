@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#7c3aed">
+<title>Kamera Stüdyo</title>
+<style>
+  :root { --bg:#f5f3fa; --card:#fff; --text:#1b1f24; --muted:#667085; --primary:#7c3aed; --border:#e5e1ee; --danger:#c62828; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f0d14; --card:#1a1722; --text:#ece9f3; --muted:#9a94a8; --primary:#a78bfa; --border:#2c2738; --danger:#ef5350; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,Roboto,sans-serif; background:var(--bg); color:var(--text);
+         padding:16px; padding-bottom:calc(16px + env(safe-area-inset-bottom)); max-width:760px; margin-inline:auto; }
+  h1 { font-size:1.35rem; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 16px; font-size:.9rem; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:14px; }
+  label { display:block; font-weight:600; font-size:.9rem; margin:10px 0 6px; }
+  input, textarea, select { width:100%; padding:10px; border-radius:10px; border:1px solid var(--border);
+         background:var(--bg); color:var(--text); font:inherit; }
+  textarea { min-height:80px; resize:vertical; }
+  .tabs { display:flex; gap:6px; margin-bottom:6px; }
+  .tabs button { flex:1; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-weight:600; cursor:pointer; }
+  .tabs button.on { background:var(--primary); color:#fff; border-color:var(--primary); }
+  .presets { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; }
+  .presets button { padding:10px 8px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); cursor:pointer; font-size:.85rem; }
+  .presets button.on { border-color:var(--primary); box-shadow:0 0 0 2px var(--primary) inset; font-weight:700; }
+  .go { display:block; width:100%; padding:16px; font-size:1.1rem; font-weight:700; border:0; border-radius:14px;
+        background:var(--primary); color:#fff; cursor:pointer; margin-top:14px; }
+  .go:disabled { opacity:.5; cursor:wait; }
+  #preview { max-width:100%; max-height:200px; border-radius:10px; margin-top:8px; display:none; }
+  #status { margin-top:10px; color:var(--muted); font-size:.9rem; white-space:pre-wrap; }
+  .gallery { display:grid; gap:12px; }
+  .item video, .item img { width:100%; border-radius:10px; background:#000; }
+  .item p { margin:6px 0 0; font-size:.8rem; color:var(--muted); word-break:break-word; }
+  .row { display:flex; gap:8px; margin-top:6px; }
+  .row a, .row button { font-size:.85rem; color:var(--primary); background:none; border:0; padding:0; cursor:pointer; text-decoration:underline; }
+  small { color:var(--muted); }
+  details summary { cursor:pointer; font-weight:600; }
+</style>
+</head>
+<body>
+<h1>🎬 Kamera Stüdyo</h1>
+<p class="sub">Yapay zekâ ile sinematik video & görsel. Abonelik yok — kendi fal.ai anahtarınla üret, kullandığın kadar öde.</p>
+
+<div class="card">
+  <details id="keyBox">
+    <summary>🔑 API anahtarı (fal.ai)</summary>
+    <label for="key">fal.ai API key</label>
+    <input id="key" type="password" placeholder="xxxxxxxx-xxxx:xxxxxxxx">
+    <small>Anahtar yalnızca bu cihazda saklanır. Almak için: fal.ai → Dashboard → Keys.</small>
+  </details>
+</div>
+
+<div class="card">
+  <div class="tabs">
+    <button data-mode="i2v" class="on">🖼️→🎥 Görselden Video</button>
+    <button data-mode="t2v">✍️→🎥 Yazıdan Video</button>
+    <button data-mode="t2i">✍️→🖼️ Görsel</button>
+  </div>
+
+  <div id="imgWrap">
+    <label for="img">Başlangıç görseli</label>
+    <input id="img" type="file" accept="image/*">
+    <img id="preview" alt="">
+  </div>
+
+  <label for="prompt">Sahne açıklaması</label>
+  <textarea id="prompt" placeholder="Örn: yağmurlu bir gecede neon ışıklı sokakta yürüyen kadın, sinematik"></textarea>
+
+  <div id="camWrap">
+    <label>Kamera hareketi</label>
+    <div class="presets" id="presets"></div>
+  </div>
+
+  <details style="margin-top:12px">
+    <summary>⚙️ Gelişmiş</summary>
+    <label for="model">Model</label>
+    <input id="model">
+    <label for="dur">Süre (sn)</label>
+    <select id="dur"><option>5</option><option>10</option></select>
+  </details>
+
+  <button class="go" id="go">Üret</button>
+  <div id="status"></div>
+</div>
+
+<h2 style="font-size:1.1rem">Galeri</h2>
+<div class="gallery" id="gallery"></div>
+
+<script>
+const PRESETS = [
+  ["Yok", ""],
+  ["Yaklaş (Dolly In)", "the camera slowly dollies in toward the subject"],
+  ["Uzaklaş (Dolly Out)", "the camera slowly dollies out, revealing the scene"],
+  ["Ani Zoom", "a sudden dramatic crash zoom into the subject's face"],
+  ["Etrafında Dön", "the camera orbits 360 degrees around the subject"],
+  ["Vinç Yukarı", "the camera cranes up high, rising above the scene"],
+  ["FPV Drone", "fast FPV drone shot flying through the scene"],
+  ["El Kamerası", "handheld shaky camera, documentary style"],
+  ["Bullet Time", "frozen bullet-time effect, camera sweeps around frozen moment"],
+  ["Sola Kaydır", "smooth camera truck left"],
+  ["Sağa Kaydır", "smooth camera truck right"],
+  ["Tilt Yukarı", "the camera tilts up slowly"],
+  ["Dolly Zoom", "vertigo dolly zoom effect, background warps"],
+  ["Takip", "the camera follows behind the subject as they move"],
+];
+const MODELS = {
+  i2v: "fal-ai/kling-video/v2.1/standard/image-to-video",
+  t2v: "fal-ai/kling-video/v2.1/master/text-to-video",
+  t2i: "fal-ai/flux/schnell",
+};
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+let mode = "i2v", cam = "", imgData = null;
+
+// presets
+PRESETS.forEach(([name, txt], i) => {
+  const b = document.createElement("button");
+  b.textContent = name; if (i === 0) b.classList.add("on");
+  b.onclick = () => { cam = txt; [...$("presets").children].forEach(x => x.classList.remove("on")); b.classList.add("on"); };
+  $("presets").appendChild(b);
+});
+
+// key
+$("key").value = store.get("falKey", "");
+if (!$("key").value) $("keyBox").open = true;
+$("key").oninput = () => store.set("falKey", $("key").value.trim());
+
+// tabs
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.mode === m));
+  $("imgWrap").style.display = m === "i2v" ? "" : "none";
+  $("camWrap").style.display = m === "t2i" ? "none" : "";
+  $("dur").parentElement && ($("dur").disabled = m === "t2i");
+  $("model").value = store.get("model_" + m, MODELS[m]);
+}
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => setMode(b.dataset.mode));
+$("model").oninput = () => store.set("model_" + mode, $("model").value.trim());
+setMode("i2v");
+
+// image -> data URI (resized to keep request small)
+$("img").onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const im = new Image();
+  im.onload = () => {
+    const s = Math.min(1, 1280 / Math.max(im.width, im.height));
+    const c = document.createElement("canvas");
+    c.width = im.width * s; c.height = im.height * s;
+    c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+    imgData = c.toDataURL("image/jpeg", 0.9);
+    $("preview").src = imgData; $("preview").style.display = "block";
+  };
+  im.src = URL.createObjectURL(f);
+};
+
+const status = t => $("status").textContent = t;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+async function fal(model, input) {
+  const key = $("key").value.trim();
+  if (!key) throw new Error("Önce fal.ai API anahtarını gir.");
+  const H = { "Authorization": "Key " + key, "Content-Type": "application/json" };
+  const r = await fetch("https://queue.fal.run/" + model, { method: "POST", headers: H, body: JSON.stringify(input) });
+  if (!r.ok) throw new Error("İstek reddedildi (" + r.status + "): " + (await r.text()).slice(0, 300));
+  const q = await r.json();
+  const t0 = Date.now();
+  while (true) {
+    await sleep(3000);
+    const s = await (await fetch(q.status_url, { headers: H })).json();
+    status(`⏳ ${s.status === "IN_QUEUE" ? "Sırada" + (s.queue_position != null ? " (#" + s.queue_position + ")" : "") : "Üretiliyor"}… ${Math.round((Date.now() - t0) / 1000)} sn`);
+    if (s.status === "COMPLETED") break;
+    if (s.status === "FAILED" || s.error) throw new Error("Üretim başarısız: " + (s.error || ""));
+  }
+  const res = await fetch(q.response_url, { headers: H });
+  const out = await res.json();
+  if (!res.ok) throw new Error("Hata: " + JSON.stringify(out).slice(0, 300));
+  return out;
+}
+
+$("go").onclick = async () => {
+  const prompt = $("prompt").value.trim();
+  if (!prompt && mode !== "i2v") return status("Bir açıklama yaz.");
+  if (mode === "i2v" && !imgData) return status("Bir görsel seç.");
+  const full = [prompt, mode !== "t2i" ? cam : ""].filter(Boolean).join(", ");
+  const model = $("model").value.trim();
+  const input = mode === "t2i"
+    ? { prompt: full, image_size: "landscape_16_9", num_images: 1 }
+    : { prompt: full || "cinematic motion", duration: $("dur").value, ...(mode === "i2v" ? { image_url: imgData } : { aspect_ratio: "16:9" }) };
+  $("go").disabled = true; status("🚀 Gönderiliyor…");
+  try {
+    const out = await fal(model, input);
+    const url = out.video?.url || out.images?.[0]?.url || out.image?.url;
+    if (!url) throw new Error("Sonuç bulunamadı: " + JSON.stringify(out).slice(0, 300));
+    const g = store.get("gallery", []);
+    g.unshift({ url, type: out.video ? "video" : "image", prompt: full, t: Date.now() });
+    store.set("gallery", g.slice(0, 50));
+    render(); status("✅ Hazır!");
+  } catch (e) { status("❌ " + e.message); }
+  $("go").disabled = false;
+};
+
+function render() {
+  const g = store.get("gallery", []);
+  $("gallery").innerHTML = g.length ? "" : "<small>Henüz üretim yok.</small>";
+  g.forEach((it, i) => {
+    const d = document.createElement("div"); d.className = "card item";
+    const m = document.createElement(it.type === "video" ? "video" : "img");
+    m.src = it.url; if (it.type === "video") { m.controls = true; m.loop = true; m.playsInline = true; }
+    const p = document.createElement("p"); p.textContent = it.prompt;
+    const row = document.createElement("div"); row.className = "row";
+    const a = document.createElement("a"); a.href = it.url; a.target = "_blank"; a.textContent = "İndir / Aç";
+    const del = document.createElement("button"); del.textContent = "Sil";
+    del.onclick = () => { const x = store.get("gallery", []); x.splice(i, 1); store.set("gallery", x); render(); };
+    row.append(a, del); d.append(m, p, row); $("gallery").appendChild(d);
+  });
+}
+render();
+</script>
+</body>
+</html>
